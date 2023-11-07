@@ -26,7 +26,7 @@ class CheckCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'check';
+    protected $signature = 'check {--n}';
 
     /**
      * The description of the command.
@@ -42,27 +42,32 @@ class CheckCommand extends Command
      */
     public function handle()
     {
-        $sel = $this->getPbFopSel();
+        $sellPB = $this->getPbFopSell();
         $buyPB = $this->getPbBuy();
+        $sellMono = $this->getMonoSell();
         $buyMono = $this->getMonoBuy();
 
-        $percentagePB = round(($buyPB - $sel)/$buyPB * 100, 2);
-        $percentageMono = round(($buyMono - $sel)/$buyMono * 100 + 0.5, 2);
+        $percentagePB = round(($buyPB - $sellPB)/$buyPB * 100, 2);
+        $percentageMono = round(($buyMono - $sellMono)/$buyMono * 100, 2);
+
 
         $this->table(
-            ['Sell FOP', 'Buy PB', 'PB %', 'Buy Mono', 'Mono +0.5%'],
+            ['Sell FOP', 'Buy PB', 'PB %', 'Buy Mono', 'Sell Mono', 'Mono %'],
             [
                 [
-                    format_uah($sel),
+                    format_uah($sellPB),
                     format_uah($buyPB),
                     $percentagePB.'%',
+                    format_uah($sellMono),
                     format_uah($buyMono),
                     $percentageMono.'%'
                 ]
             ],
         );
 
-        $this->notify("PB: " . $percentagePB . " %", "Mono: " . $percentageMono . " %");
+        if ($this->option('n')) {
+            $this->notify("PB: " . $percentagePB . " %", "Mono: " . $percentageMono . " %");
+        }
     }
 
     /**
@@ -76,7 +81,7 @@ class CheckCommand extends Command
         // $schedule->command(static::class)->everyMinute();
     }
 
-    private function getPbFopSel(string $currency = 'EUR'): float
+    private function getPbFopSell(string $currency = 'EUR'): float
     {
         $data = $this->getPbBusinessData();
 
@@ -88,6 +93,16 @@ class CheckCommand extends Command
         $collection = collect($this->getPbUserData());
 
         return (float) $collection->firstWhere('ccy', $currency)['sale'];
+    }
+
+    private function getMonoSell(string $currency = 'EUR'): float
+    {
+        $rate = collect($this->getMonoData())
+            ->first(fn($item) =>
+                $item['currencyCodeA'] === self::ISO_4217[$currency] && $item['currencyCodeB'] === self::UAH
+            );
+
+        return (float) $rate['rateBuy'];
     }
 
     private function getMonoBuy(string $currency = 'EUR'): float
