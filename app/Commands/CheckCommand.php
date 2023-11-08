@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
+use function Termwind\render;
+
 class CheckCommand extends Command
 {
     const CACHE_LIFETIME = 5 * 60;
@@ -50,23 +52,24 @@ class CheckCommand extends Command
         $percentagePB = round(($buyPB - $sellPB)/$buyPB * 100, 2);
         $percentageMono = round(($buyMono - $sellMono)/$buyMono * 100, 2);
 
+        $PB_value = format_currency($sellPB) . ' / ' . format_currency($buyPB) . ' = ' . $percentagePB . '%';
+        $Mono_value = format_currency($sellMono) . ' / ' . format_currency($buyMono) . ' = ' . $percentageMono . '%';
 
-        $this->table(
-            ['Sell FOP', 'Buy PB', 'PB %', 'Buy Mono', 'Sell Mono', 'Mono %'],
-            [
-                [
-                    format_uah($sellPB),
-                    format_uah($buyPB),
-                    $percentagePB.'%',
-                    format_uah($sellMono),
-                    format_uah($buyMono),
-                    $percentageMono.'%'
-                ]
-            ],
-        );
+        render(<<<HTML
+            <div class="py-1 ml-2">
+                <div class="px-1 bg-green-300 text-black w-10 font-bold">PB</div>
+                <span class="ml-1 text-green-700">
+                  $PB_value
+                </span>
+                <div class="px-1 bg-black text-white w-10 font-bold">Mono</div>
+                <span class="ml-1">
+                  $Mono_value
+                </span>
+            </div>
+        HTML);
 
         if ($this->option('n')) {
-            $this->notify("PB: " . $percentagePB . " %", "Mono: " . $percentageMono . " %");
+            $this->notify("PB: " . $PB_value, "Mono: " . $Mono_value);
         }
     }
 

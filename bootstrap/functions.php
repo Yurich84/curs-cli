@@ -8,9 +8,17 @@ if (! function_exists('format_uah')) {
      * @param float $value
      * @return string
      */
-    function format_uah(float $value)
+    function format_uah(float $value): string
     {
         return (new \NumberFormatter(config('app.locale'), \NumberFormatter::CURRENCY))
             ->formatCurrency($value, 'UAH');
+    }
+}
+
+
+if (! function_exists('format_currency')) {
+    function format_currency(float $value): string
+    {
+        return number_format($value, 2);
     }
 }
