@@ -2,8 +2,8 @@
 
 namespace App\Commands;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
+use App\Services\MonoService;
+use App\Services\PrivatService;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
@@ -11,18 +11,6 @@ use function Termwind\render;
 
 class CheckCommand extends Command
 {
-    const CACHE_LIFETIME = 5 * 60;
-
-    const ISO_4217 = [
-        'UAH' => self::UAH,
-        'USD' => self::USD,
-        'EUR' => self::EUR,
-    ];
-
-    const UAH = 980;
-    const USD = 840;
-    const EUR =978;
-
     /**
      * The signature of the command.
      *
@@ -44,101 +32,27 @@ class CheckCommand extends Command
      */
     public function handle()
     {
-        $sellPB = $this->getPbFopSell();
-        $buyPB = $this->getPbBuy();
-        $sellMono = $this->getMonoSell();
-        $buyMono = $this->getMonoBuy();
-
-        $percentagePB = round(($buyPB - $sellPB)/$buyPB * 100, 2);
-        $percentageMono = round(($buyMono - $sellMono)/$buyMono * 100, 2);
-
-        $PB_value = format_currency($sellPB) . ' / ' . format_currency($buyPB) . ' = ' . $percentagePB . '%';
-        $Mono_value = format_currency($sellMono) . ' / ' . format_currency($buyMono) . ' = ' . $percentageMono . '%';
+        $pb_usd = (new PrivatService('USD'))->renderBlock();
+        $pb_eur = (new PrivatService())->renderBlock();
+        $mon_eur = (new MonoService())->renderBlock();
 
         render(<<<HTML
             <div class="py-1 ml-2">
-                <div class="px-1 bg-green-300 text-black w-10 font-bold">PB</div>
-                <span class="ml-1 text-green-700">
-                  $PB_value
-                </span>
-                <div class="px-1 bg-black text-white w-10 font-bold">Mono</div>
-                <span class="ml-1">
-                  $Mono_value
-                </span>
+                $pb_usd
+                $pb_eur
+                $mon_eur
             </div>
         HTML);
-
-        if ($this->option('n')) {
-            $this->notify("PB: " . $PB_value, "Mono: " . $Mono_value);
-        }
     }
 
     /**
      * Define the command's schedule.
      *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+     * @param  Schedule  $schedule
      * @return void
      */
     public function schedule(Schedule $schedule): void
     {
         // $schedule->command(static::class)->everyMinute();
-    }
-
-    private function getPbFopSell(string $currency = 'EUR'): float
-    {
-        $data = $this->getPbBusinessData();
-
-        return (float) $data[$currency]['B']['rate'];
-    }
-
-    private function getPbBuy(string $currency = 'EUR'): float
-    {
-        $collection = collect($this->getPbUserData());
-
-        return (float) $collection->firstWhere('ccy', $currency)['sale'];
-    }
-
-    private function getMonoSell(string $currency = 'EUR'): float
-    {
-        $rate = collect($this->getMonoData())
-            ->first(fn($item) =>
-                $item['currencyCodeA'] === self::ISO_4217[$currency] && $item['currencyCodeB'] === self::UAH
-            );
-
-        return (float) $rate['rateBuy'];
-    }
-
-    private function getMonoBuy(string $currency = 'EUR'): float
-    {
-        $rate = collect($this->getMonoData())
-            ->first(fn($item) =>
-                $item['currencyCodeA'] === self::ISO_4217[$currency] && $item['currencyCodeB'] === self::UAH
-            );
-
-        return (float) $rate['rateSell'];
-    }
-
-    private function getPbBusinessData()
-    {
-        $url = 'https://acp.privatbank.ua/api/proxy/currency/';
-
-        return Cache::remember('pbFop', self::CACHE_LIFETIME, fn() =>
-            Http::withHeaders(['token' => env('PB_TOKEN')])->get($url)->json()
-        );
-    }
-
-    private function getPbUserData()
-    {
-        $url = 'https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=11';
-
-        return Cache::remember('pb', self::CACHE_LIFETIME, fn() => Http::get($url)->json());
-
-    }
-
-    private function getMonoData()
-    {
-        $url = 'https://api.monobank.ua/bank/currency';
-
-        return Cache::remember('mono', self::CACHE_LIFETIME, fn() => Http::get($url)->json());
     }
 }
