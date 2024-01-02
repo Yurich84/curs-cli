@@ -44,7 +44,6 @@ class MonoService extends BankService
         $this->buy = (float) $rate['rateSell'];
     }
 
-
     private function getData()
     {
         return Cache::remember('mono', self::CACHE_LIFETIME, fn() => Http::get(self::API_URL)->json());

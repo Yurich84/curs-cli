@@ -30,7 +30,6 @@ class PrivatService extends BankService
         $this->buy = (float) $collection->firstWhere('ccy', $this->currency)['sale'];
     }
 
-
     private function getBusinessData()
     {
         return Cache::remember('pbFop', self::CACHE_LIFETIME, fn() =>

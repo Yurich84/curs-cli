@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use Exception;
+use Illuminate\Support\Facades\Log;
+
 abstract class BankService
 {
     const CACHE_LIFETIME = 5 * 60;
@@ -18,8 +21,12 @@ abstract class BankService
 
     public function __construct(protected string $currency = 'EUR')
     {
-        $this->setSell();
-        $this->setBuy();
+        try {
+            $this->setSell();
+            $this->setBuy();
+        } catch (Exception $exception) {
+            Log::error($exception);
+        }
     }
 
     abstract protected function setSell();
@@ -36,7 +43,7 @@ abstract class BankService
         return round(($this->buy - $this->sell)/$this->buy * 100, 2);
     }
 
-    protected function formatValue(): string
+    protected function formattedValues(): string
     {
         $percentage = $this->calcPercentage();
 
@@ -45,10 +52,14 @@ abstract class BankService
 
     public function renderBlock(): string
     {
-        $value = $this->formatValue();
+        if (!$this->sell || !$this->buy) {
+            return '
+            <div class="px-1 bg-red-300 text-black w-10 font-bold">' . $this->getLabel() . '</div>
+            <span class="ml-1 text-red-700">Error</span>';
+        }
 
         return '
             <div class="px-1 bg-green-300 text-black w-10 font-bold">' . $this->getLabel() . '</div>
-            <span class="ml-1 text-green-700">' . $value . '</span>';
+            <span class="ml-1 text-green-700">' . $this->formattedValues() . '</span>';
     }
 }
