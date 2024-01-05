@@ -26,22 +26,20 @@ class MonoService extends BankService
 
     protected function setSell()
     {
-        $rate = collect($this->getData())
-            ->first(fn($item) =>
-                $item['currencyCodeA'] === self::ISO_4217[$this->currency] && $item['currencyCodeB'] === self::UAH
-            );
-
-        $this->sell = (float) $rate['rateBuy'];
+        $this->sell = (float) $this->getRate()['rateBuy'];
     }
 
     protected function setBuy()
     {
-        $rate = collect($this->getData())
+        $this->buy = (float) $this->getRate()['rateSell'];
+    }
+
+    private function getRate()
+    {
+        return collect($this->getData())
             ->first(fn($item) =>
                 $item['currencyCodeA'] === self::ISO_4217[$this->currency] && $item['currencyCodeB'] === self::UAH
             );
-
-        $this->buy = (float) $rate['rateSell'];
     }
 
     private function getData()
