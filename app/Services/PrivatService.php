@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PrivatService extends BankService
 {
@@ -32,9 +33,15 @@ class PrivatService extends BankService
 
     private function getBusinessData()
     {
-        return Cache::remember('pbFop', self::CACHE_LIFETIME, fn() =>
+        $data = Cache::remember('pbFop', self::CACHE_LIFETIME, fn() =>
             Http::withHeaders(['token' => env('PB_TOKEN')])->get(self::BUSINESS_API_URL)->json()
         );
+
+        if (isset($data['error'])) {
+            throw new NotFoundHttpException($data['error']);
+        }
+
+        return $data;
     }
 
     private function getUserData()

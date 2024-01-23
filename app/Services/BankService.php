@@ -15,9 +15,11 @@ abstract class BankService
         'EUR' => '€',
     ];
 
-    protected float $sell;
+    protected float $sell = 0.0;
 
-    protected float $buy;
+    protected float $buy = 0.0;
+
+    protected string $errorMessage;
 
     public function __construct(protected string $currency = 'EUR')
     {
@@ -25,6 +27,7 @@ abstract class BankService
             $this->setSell();
             $this->setBuy();
         } catch (Exception $exception) {
+            $this->errorMessage = $exception->getMessage();
             Log::error($exception);
         }
     }
@@ -55,7 +58,7 @@ abstract class BankService
         if (!$this->sell || !$this->buy) {
             return '
             <div class="px-1 bg-red-300 text-black w-10 font-bold">' . $this->getLabel() . '</div>
-            <span class="ml-1 text-red-700">Error</span>';
+            <span class="ml-1 text-red-700">'. $this->errorMessage .'</span>';
         }
 
         return '
