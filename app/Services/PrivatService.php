@@ -10,7 +10,7 @@ class PrivatService extends BankService
 {
     const API_URL = 'https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=11';
 
-    const BUSINESS_API_URL = 'https://acp.privatbank.ua/api/proxy/currency/';
+    const BUSINESS_API_URL = 'https://acp.privatbank.ua/api/proxy/currency';
 
     protected function getLabel(): string
     {
